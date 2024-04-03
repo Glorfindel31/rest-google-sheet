@@ -4,6 +4,23 @@ require("dotenv").config();
 
 const router = express.Router();
 
+function convertToISODate(dateString) {
+  const [day, month, year] = dateString.split("/");
+
+  let adjustedYear = parseInt(year, 10);
+  if (adjustedYear < 100) {
+    adjustedYear += 2000;
+  }
+
+  const date = new Date(adjustedYear, month - 1, day);
+
+  const timezoneOffset = date.getTimezoneOffset() * 60 * 1000; // Offset in milliseconds
+  const adjustedDate = new Date(date.getTime() - timezoneOffset);
+
+  const isoDate = adjustedDate.toISOString();
+  return isoDate;
+}
+
 function transformData(data) {
   let name = null;
 
@@ -22,7 +39,7 @@ function transformData(data) {
   const transformedValues = data.values
     .map((row, index) => {
       row[1] === "1" ? (name = row[0]) : (name = name);
-
+      const link = row[7] || "";
       if (!row[2]) return null;
       const color = colorReplacements[row[2]] || row[2];
       return {
@@ -31,6 +48,9 @@ function transformData(data) {
         color: color,
         grade: row[3],
         setter: row[4].toLowerCase(),
+        comment: row[5],
+        date: convertToISODate(row[6]),
+        link: link,
       };
     })
     .filter((item) => item !== null);
@@ -75,7 +95,7 @@ router.get("/", async (req, res) => {
 
   const opt = {
     spreadsheetId: spreadSheetId,
-    range: "Sheet1!B3:F137",
+    range: "Sheet1!B3:I137",
   };
 
   try {
